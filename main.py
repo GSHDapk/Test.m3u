@@ -1,71 +1,42 @@
 import requests
 from bs4 import BeautifulSoup
 
+# Tarayıcı gibi görünmek için detaylı header bilgileri
 HEADERS = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+    'Accept-Language': 'tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.9',
     'Referer': 'https://live.semttv.xyz/'
 }
 
-# Eğer 'zirve' seçeneği için özel bir URL kullanmıyorsanız varsayılan bir yedek link yazabilirsiniz
-WORKING_BS1_URL = "https://pasadasin71.cfd/zirve.m3u8"
-
-def fetch_netspor():
-    results = []
+def test_fetch():
+    url = "https://live.semttv.xyz/"
+    print(f"Bağlanmaya çalışılıyor: {url}")
+    
     try:
-        url = "https://live.semttv.xyz/"
-        res = requests.get(url, headers=HEADERS, timeout=15)
-        res.encoding = 'utf-8'
+        response = requests.get(url, headers=HEADERS, timeout=15)
+        print(f"HTTP Durum Kodu: {response.status_code}")
         
-        if res.status_code != 200:
-            print(f"Siteye erişilemedi, HTTP Kod: {res.status_code}")
-            return results
+        if response.status_code != 200:
+            print(f"HATA: Site olumlu yanıt vermedi. Kod: {response.status_code}")
+            return
 
-        soup = BeautifulSoup(res.text, 'html.parser')
+        soup = BeautifulSoup(response.text, 'html.parser')
         
-        for div in soup.find_all('div', class_='mac', option=True):
-            sid = div.get('option')
-            if not sid:
-                continue
-                
-            t_div = div.find('div', class_='match-takimlar')
-            if not t_div:
-                continue
-                
-            title = t_div.get_text(strip=True)
-            if not title:
-                continue
+        # Sitedeki maç elementlerini arayalım
+        maclar = soup.find_all('div', class_='mac')
+        print(f"Bulunan '.mac' sınıfına sahip element sayısı: {len(maclar)}")
+        
+        if len(maclar) == 0:
+            print("UYARI: Sitede '.mac' sınıfı bulunamadı. Site tasarımı değişmiş veya bot koruması sayfayı gizliyor olabilir.")
+            print("Gelen sayfanın ilk 500 karakteri:")
+            print(response.text[:500])
+        else:
+            for i, div in enumerate(maclar[:3]): # İlk 3 maçı test için yazdır
+                print(f"Örnek Maç {i+1}: {div.get_text(strip=True)}")
 
-            group = "NETSPOR MACLAR" if not div.find_parent('div', id='kontrolPanelKanallar') else "NETSPOR CANLI"
-            f_url = WORKING_BS1_URL if sid == "zirve" else f"https://pasadasin71.cfd/{sid}.m3u8"
-            
-            results.append({
-                "name": title, 
-                "url": f_url, 
-                "group": group, 
-                "ref": "https://live.semttv.xyz/"
-            })
-            
     except Exception as e:
-        print(f"Veri çekilirken hata oluştu: {e}")
-        
-    return results
-
-def save_m3u():
-    items = fetch_netspor()
-    if not items:
-        print("Hiçbir yayın bulunamadı veya site yapısı değişti.")
-        return
-
-    m3u_content = "#EXTM3U\n"
-    for item in items:
-        m3u_content += f'#EXTINF:-1 group-title="{item["group"]}",{item["name"]}\n'
-        m3u_content += f'#EXTVLCOPT:http-referrer={item["ref"]}\n'
-        m3u_content += f'{item["url"]}\n'
-
-    with open("netspor.m3u", "w", encoding="utf-8") as f:
-        f.write(m3u_content)
-        
-    print(f"Başarıyla {len(items)} yayın 'netspor.m3u' dosyasına kaydedildi.")
+        print(f"Bağlantı sırasındakritik hata oluştu: {e}")
 
 if __name__ == "__main__":
-    save_m3u()
+    test_fetch()
