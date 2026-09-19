@@ -1,17 +1,16 @@
-name: Netspor Bot - Auto Update
+name: Netspor M3U Auto-Update
 
 on:
   schedule:
-    # Her 4 saatte bir çalıştır (İstediğiniz gibi değiştirebilirsiniz)
-    - cron: '0 */4 * * *'
-  workflow_dispatch: # Manuel olarak da tetiklenebilir
+    - cron: '0 */3 * * *' # Her 3 saatte bir otomatik çalışır
+  workflow_dispatch:     # GitHub panelinden manuel "Run workflow" demenizi sağlar
 
 jobs:
-  update-links:
+  build:
     runs-on: ubuntu-latest
     
     permissions:
-      contents: write # GitHub Actions'ın repoya dosya commit etmesine izin verir
+      contents: write # Botun dosyayı repoya geri kaydedebilmesi (commit) için şarttır
 
     steps:
       - name: Checkout repository
@@ -27,12 +26,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install requests beautifulsoup4
 
-      - name: Run bot script
+      - name: Run Python Bot
         run: python bot.py
 
-      - name: Commit and push if changed
+      - name: Commit and push changes if m3u updated
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.io'
           git add netspor.m3u
-          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-update Netspor links [skip ci]" && git push)
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-update netspor.m3u [skip ci]" && git push)
